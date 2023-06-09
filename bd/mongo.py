@@ -5,7 +5,7 @@ import os
 client = MongoClient('mongodb://localhost:27017')
 # client = MongoClient("mongodb+srv://user_jaime:XhA7pqTDWKfQy6Nh@micluster.pns9q58.mongodb.net")
 
-db  = client.get_database("pruebadiarios")
+db  = client.get_database("peru21")
 
 def insertarMongo(valor, coleccion):
     col = db[coleccion]
