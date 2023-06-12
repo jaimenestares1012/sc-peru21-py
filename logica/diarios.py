@@ -6,7 +6,7 @@ import time
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from functions import urlnoticia, hashear, contiene_p_o_m, generaJson
+from functions import urlnoticia, hashear, contiene_p_o_m, generaJson, limpia_data
 from utils.testS3 import insertS3
 from datetime import datetime
 
@@ -36,19 +36,12 @@ class Principal():
     def logica(self):
         start = time.time()
         self.driver.get(self.url)
-        # https://larepublica.pe/politica
         coleccion = self.url.split('/')[3]
-        print("coleccion", coleccion)
         self.driver.maximize_window()
-        # container = self.driver.find_element(By.CLASS_NAME , 'paginated-list--infinite')
         noticias = self.driver.find_elements(By.CLASS_NAME , 'story-item')
-        print("noticias", noticias)
-        # fecha_scraping = 
-
-        # Convertir el string en un objeto datetime
         isend = False
         fecha_scrapeo = datetime.strptime(self.fecha_scraping, "%Y-%m-%d").date()
-        arrayNoticias = []
+        noticias_en_fecha = []
         scroll_distance = 5000
         self.driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
         end = time.time()
@@ -62,7 +55,6 @@ class Principal():
                 if(contiene_p_o_m(fecha_publicada)):
                     fecha_publicada_obj = datetime.now().date().strftime("%Y-%m-%d")
                     fecha_publicada_obj= datetime.strptime(fecha_publicada_obj, "%Y-%m-%d").date()
-                    pass
                 else:
                     fecha_publicada_obj = datetime.strptime(fecha_publicada, "%d/%m/%Y").date()
 
@@ -72,7 +64,7 @@ class Principal():
                         "url": url,
                         'url_img': url_img
                     }
-                    arrayNoticias.append(data)
+                    noticias_en_fecha.append(data)
                 else:
                     print("Noticia fuera de fecha")  
                 
@@ -85,10 +77,12 @@ class Principal():
         
   
         
-        for noticia in arrayNoticias:
+        for noticia in noticias_en_fecha:
             try:
+
                 url_noticia = noticia['url']
                 url_img = noticia['url_img']
+
                 self.driver.get(url_noticia)
                 time.sleep(5)
                 scroll_distance = 500
@@ -98,6 +92,8 @@ class Principal():
                 soup = BeautifulSoup(html, "html.parser")
                 contenedor = soup.find(id="contenedor")
                 titulo = soup.find(class_="sht__title")
+                print("titulo", titulo)
+                titulo = limpia_data(titulo.text.strip())
                 datos = soup.find(class_="story-contents__author")
                 datetime_str = datos.find('time')['datetime']
                 fecha_datetime = datetime.fromisoformat(datetime_str)
@@ -105,41 +101,48 @@ class Principal():
                 parrafos = contenedor.find_all('p')
 
                 for parrafo in parrafos:
+                    print("<---------- INICIO ---------------->")
                     # Extraer el contenido del párrafo eliminando las etiquetas HTML
                     texto_limpio = ''.join(parrafo.findAll(text=True))
-                    # Agregar el párrafo limpio a la lista parrafos_limpios
-                    
-                    urlParrafo = urlnoticia(url_noticia, texto_limpio.strip())
-                    id_parrafo = hashear(urlParrafo)
+                    texto_limpio = limpia_data(texto_limpio.strip())
+                    tamano = texto_limpio.split()
+                    print("1.- texto Limpio ", texto_limpio)
+                    if len(tamano) > 3:
+                        urlParrafo = urlnoticia(url_noticia, texto_limpio)
+                        print("2.- Url Parrafo" )
+
+                        id_parrafo = hashear(urlParrafo)
+                        print("3.- id Parrafo" )
 
 
-
-                    json_limpio = {
-                        'id':  id_parrafo,
-                        'source_place': '2dfa9ecb0179a4e4',
-                        'sample_lang': 'es',
-                        'sample_app': 'web',
-                        'source_snetwork_id': 'nws',
-                        'sample_created_at': timestamp,
-                        'sample_text': texto_limpio.strip(),
-                        'sample_link': urlParrafo,
-                        'author_id': 'md5pordefinir',
-                        'author_fullname': 'Diario Perú21',
-                        'author_photo': 'Fotobds3',
-                        'author_screen_name': 'peru21.pe',
-                        'sample_post_author_id': 'md5pordefinir',
-                        'sample_post_author': 'Diario Perú21', 
-                        'sample_post_author_photo': 'Fotobds3',
-                        'sample_post_id': hashear(url_noticia), 
-                        'sample_post_text': titulo.text.strip().replace('\\"', '"').replace("\\'", "'") ,
-                        # + subtitulo.text.strip().replace('\\"', '"').replace("\\'", "'"), 
-                        'sample_post_created_at': timestamp,
-                        'sample_post_image': url_img,
-                        'sample_post_link': url_noticia
-                    }
-                    generaJson(json_limpio, id_parrafo,fecha_scrapeo )
-                    insertS3(fecha_scrapeo,id_parrafo)
-                    print(json_limpio)
+                        json_limpio = {
+                            'id':  id_parrafo,
+                            'source_place': '2dfa9ecb0179a4e4',
+                            'sample_lang': 'es',
+                            'sample_app': 'web',
+                            'source_snetwork_id': 'nws',
+                            'sample_created_at': timestamp,
+                            'sample_text': texto_limpio,
+                            'sample_link': urlParrafo,
+                            'author_id': 'md5pordefinir',
+                            'author_fullname': 'Diario Peru21',
+                            'author_photo': 'Fotobds3',
+                            'author_screen_name': 'peru21.pe',
+                            'sample_post_author_id': 'md5pordefinir',
+                            'sample_post_author': 'Diario Peru21', 
+                            'sample_post_author_photo': 'Fotobds3',
+                            'sample_post_id': hashear(url_noticia), 
+                            'sample_post_text': titulo ,
+                            # + subtitulo.text.strip().replace('\\"', '"').replace("\\'", "'"), 
+                            'sample_post_created_at': timestamp,
+                            'sample_post_image': url_img,
+                            'sample_post_link': url_noticia
+                        }
+                        print("4. Fin de json")
+                        time.sleep(1)
+                        generaJson(json_limpio, id_parrafo,fecha_scrapeo )
+                        # insertS3( fecha_scrapeo , id_parrafo)
+                        # print(json_limpio)
                 time.sleep(10)
             except Exception as e:
                 print("Error:", str(e))

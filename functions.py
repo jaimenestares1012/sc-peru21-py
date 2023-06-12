@@ -2,6 +2,7 @@ import hashlib
 import re
 import os
 import json
+from unidecode import unidecode
 
 def urlnoticia(base, parrafo):
     palabras = parrafo.split()
@@ -45,9 +46,12 @@ def generaJson(data, nombre_sarchivo, fecha_scraping):
 
     print("Archivo JSON creado con éxito en:", file_path)
 
-
+def limpia_data(str):
+    texto_limpio = unidecode(str)
+    texto_limpio = re.sub(r'["“”]', '', texto_limpio)
+    return texto_limpio
 
 # print(contiene_p_o_m("01:54 p. m."))  # True
 # print(contiene_p_o_m("08:30 a. m."))  # True
 # print(contiene_p_o_m("10:00 a."))    # True
-# print(contiene_p_o_m("11:45"))    
+# limpia_data("“Este es un aumento histórico de Avianca en los vuelos que conectan con Madrid y Barcelona desde y hacia Bogotá, y una oportunidad importante para que el flujo de pasajeros entre Lima y Madrid siga incrementándose, considerando que el tráfico entre ambas ciudades se elevó 21% en marzo, respecto al mismo mes de 2022, con 59,502 pasajeros transportados.”, indicó Erika Hundskopf, gerente comercial de la aerolínea para Perú, Bolivia y Chile y actual Country Officer de Perú.")

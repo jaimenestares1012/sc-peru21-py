@@ -13,11 +13,13 @@ def diarios():
     json = request.get_json()
     url = json['url']
     fecha_scraping = json['fecha_scraping']
-    
-    process= Principal(url, fecha_scraping)
-    process.logica()
-    return {'codRes':'00',
-            'message': 'sc-diarios-py'}
+    try:
+        process= Principal(url, fecha_scraping)
+        process.logica()
+        return {'codRes':'00', 'message': 'sc-diarios-py'}
+    except Exception as e:
+        print("e", e)
+        return {'codRes':'99'}
 
 
 if __name__ == '__main__':
