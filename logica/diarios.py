@@ -5,11 +5,9 @@ from selenium.webdriver.common.by import By
 import time
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-import re
 
-from bd.mongo import insertarMongo
-from utils.functions import urlnoticia, hashear, contiene_p_o_m, generaJson
-from utils.testS3 import insertAws
+from functions import urlnoticia, hashear, contiene_p_o_m, generaJson
+from utils.testS3 import insertS3
 from datetime import datetime
 
 class Principal():
@@ -28,7 +26,7 @@ class Principal():
         options.add_argument(f'user-agent={user_agent}')
 
         try:
-            self.driver = webdriver.Remote(command_executor='http://192.168.44.216:4444/wd/hub', desired_capabilities=options.to_capabilities())
+            self.driver = webdriver.Remote(command_executor='http://localhost:4444/wd/hub', desired_capabilities=options.to_capabilities())
             self.wait = WebDriverWait(self.driver, 10)
         except:
             pass
@@ -53,41 +51,22 @@ class Principal():
         arrayNoticias = []
         scroll_distance = 5000
         self.driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
-
-
         end = time.time()
         dif = end - start
-
-        # print("DIFERENCIAAA----->", dif)
-
         for noticia in noticias:
-            print("INICIO-------------->", fecha_scrapeo)
             try:
                 url = noticia.find_element(By.XPATH,  './div/figure/a').get_attribute('href')
-
-                # print("url", url)
                 url_img = noticia.find_element(By.XPATH,  './div/figure/a/picture/img').get_attribute('src')
-                # print("url_img", url_img)
                 fecha_publicada = noticia.find_element(By.XPATH,  './div/div/div/p').text
                 fecha_publicada_obj = ''
-                # print("contiene_am_pm(fecha_publicada)", contiene_am_pm(fecha_publicada))
-                print("LA DATA ES DE HOY", fecha_publicada)
-                try:
-                    if(contiene_p_o_m(fecha_publicada)):
-                        # fecha_publicada_obj= datetime.strptime(fecha_publicada, "%d/%m/%Y").date()
-                       
-                        fecha_publicada_obj = datetime.now().date().strftime("%Y-%m-%d")
-                        fecha_publicada_obj= datetime.strptime(fecha_publicada_obj, "%Y-%m-%d").date()
-                        print("LA DATA ES DE HOY", fecha_publicada_obj)
-                        pass
-                    else:
-                        fecha_publicada_obj = datetime.strptime(fecha_publicada, "%d/%m/%Y").date()
-                except:
+                if(contiene_p_o_m(fecha_publicada)):
+                    fecha_publicada_obj = datetime.now().date().strftime("%Y-%m-%d")
+                    fecha_publicada_obj= datetime.strptime(fecha_publicada_obj, "%Y-%m-%d").date()
                     pass
+                else:
+                    fecha_publicada_obj = datetime.strptime(fecha_publicada, "%d/%m/%Y").date()
 
-
-                print("fecha_publicada", fecha_publicada_obj, type(fecha_publicada_obj))
-                print("fecha_scrapeo", fecha_scrapeo, type(fecha_scrapeo))
+                    
                 if fecha_publicada_obj == fecha_scrapeo:
                     data = {
                         "url": url,
@@ -107,7 +86,6 @@ class Principal():
   
         
         for noticia in arrayNoticias:
-            print("NOTICIA---->!", noticia)
             try:
                 url_noticia = noticia['url']
                 url_img = noticia['url_img']
@@ -121,39 +99,21 @@ class Principal():
                 contenedor = soup.find(id="contenedor")
                 titulo = soup.find(class_="sht__title")
                 datos = soup.find(class_="story-contents__author")
-                # datos = interna_content.find('div')
-
-
-                print("contenedor", contenedor, len(contenedor))
-
-
-
-                
                 datetime_str = datos.find('time')['datetime']
-
-                print("datetime_str", datetime_str)
-                # contexto = datos.find('span')
                 fecha_datetime = datetime.fromisoformat(datetime_str)
-                print("fecha_datetime",fecha_datetime)
                 timestamp = fecha_datetime.timestamp() * 1000
-
-                print("timestamp",timestamp)
-                # titulo = interna_content.find('h1')
-                # subtitulo = interna_content.find('h2')
-
-                # MainContent_main__body__i6gEa = interna_content.find(class_="MainContent_main__body__i6gEa")    
                 parrafos = contenedor.find_all('p')
 
-
-    #             # Recorrer cada elemento de la lista parrafos
                 for parrafo in parrafos:
                     # Extraer el contenido del párrafo eliminando las etiquetas HTML
                     texto_limpio = ''.join(parrafo.findAll(text=True))
                     # Agregar el párrafo limpio a la lista parrafos_limpios
-                    print("<------------->")
+                    
                     urlParrafo = urlnoticia(url_noticia, texto_limpio.strip())
                     id_parrafo = hashear(urlParrafo)
-                    print("id_parrafo", id_parrafo, type(id_parrafo))
+
+
+
                     json_limpio = {
                         'id':  id_parrafo,
                         'source_place': '2dfa9ecb0179a4e4',
@@ -178,11 +138,8 @@ class Principal():
                         'sample_post_link': url_noticia
                     }
                     generaJson(json_limpio, id_parrafo,fecha_scrapeo )
-                    # time.sleep(2)
-                    # insertAws(fecha_scrapeo, id_parrafo)
-                    # insertAws("2023-06-09","fa1ad66cfb0acc7719b38cfc503b0195")
+                    insertS3(fecha_scrapeo,id_parrafo)
                     print(json_limpio)
-                    # insertarMongo(json_limpio, coleccion)
                 time.sleep(10)
             except Exception as e:
                 print("Error:", str(e))

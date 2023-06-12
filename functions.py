@@ -28,7 +28,7 @@ def generaJson(data, nombre_sarchivo, fecha_scraping):
 
     # Obtén la ruta del directorio actual (carpeta que contiene el archivo .py)
     current_dir = os.path.dirname(os.path.abspath(__file__))
-
+    
     # Construye la ruta completa del directorio donde se guardará el archivo JSON
     folder_path = os.path.join(current_dir, "data/{}".format(fecha_scraping))
 
