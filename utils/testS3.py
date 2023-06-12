@@ -1,14 +1,10 @@
 import boto3
-# produccion
-# acces = "AKIAY2RSPM6YLLAVMY4E"
-# secret = "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"
-# buckett= "isc-newspapers-collector"
-# table_name = "isc_newspapers_keywords"
+
 
 def insertS3(carpeta, nombre_archivo):
     try:
-        acces = "AKIAXEHO6RUCY7NO3FF6"
-        secret = "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"
+        acces = "AKIAXEHO6RUC6XMSTD33"
+        secret = "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"
         buckett= "test-anytech"
         session = boto3.Session(
             aws_access_key_id= acces,
@@ -16,9 +12,10 @@ def insertS3(carpeta, nombre_archivo):
         )
         s3 = session.client('s3')
         s3.list_buckets()
+        print("s3.list_buckets()", s3.list_buckets())
         s3.upload_file("data/{}/{}.json".format(carpeta, nombre_archivo), buckett, "data/{}/{}.json".format(carpeta,nombre_archivo))
     except:
         print("ERROR SUBIR ARCHIVO" )
 
 
-# insertS3("2023-06-09","fa1ad66cfb0acc7719b38cfc503b0195")
+insertS3("2023-06-09","fa1ad66cfb0acc7719b38cfc503b0195")
